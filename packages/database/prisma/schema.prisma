@@ -1,0 +1,444 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ----------------------------------------------------
+// PLATFORM & MULTI-TENANCY CORE
+// ----------------------------------------------------
+
+enum TenantStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+  ARCHIVED
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  INCOMPLETE
+}
+
+model Tenant {
+  id           String       @id @default(uuid())
+  slug         String       @unique
+  name         String
+  subdomain    String       @unique
+  customDomain String?      @unique
+  status       TenantStatus @default(ACTIVE)
+  planId       String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  plan          Plan           @relation(fields: [planId], references: [id])
+  subscriptions Subscription[]
+  overrides     TenantOverride[]
+  usageMetrics  TenantUsage[]
+  users         Membership[]
+  outbox        Outbox[]
+  auditLogs     AuditLog[]
+
+  // School Core Relations
+  schoolProfile    SchoolProfile?
+  campuses         Campus[]
+  academicYears    AcademicYear[]
+  academicPeriods  AcademicPeriod[]
+  educationalLevels EducationalLevel[]
+  gradeLevels      GradeLevel[]
+  sections         Section[]
+  classrooms       Classroom[]
+
+  @@map("tenants")
+}
+
+model Plan {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  name         String
+  description  String?
+  maxStudents  Int      @default(100)
+  maxTeachers  Int      @default(20)
+  maxStorageGb Int      @default(10)
+  features     Json     // Array of FeatureKey strings
+  monthlyPrice Decimal  @db.Decimal(10, 2)
+  annualPrice  Decimal  @db.Decimal(10, 2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenants       Tenant[]
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id              String             @id @default(uuid())
+  tenantId        String
+  planId          String
+  status          SubscriptionStatus @default(ACTIVE)
+  billingCycle    BillingCycle       @default(MONTHLY)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean         @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan            Plan               @relation(fields: [planId], references: [id])
+  addOns          SubscriptionAddOn[]
+
+  @@index([tenantId])
+  @@map("subscriptions")
+}
+
+model AddOn {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  metricKey   String?  // e.g., 'students', 'teachers', 'storage_gb'
+  extraUnits  Int      @default(0)
+  featureKey  String?  // Feature unlocked by add-on (if any)
+  price       Decimal  @db.Decimal(10, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions SubscriptionAddOn[]
+
+  @@map("add_ons")
+}
+
+model SubscriptionAddOn {
+  id             String   @id @default(uuid())
+  subscriptionId String
+  addOnId        String
+  quantity       Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  addOn          AddOn        @relation(fields: [addOnId], references: [id])
+
+  @@unique([subscriptionId, addOnId])
+  @@map("subscription_add_ons")
+}
+
+model TenantOverride {
+  id         String   @id @default(uuid())
+  tenantId   String
+  featureKey String?  // Specific feature enabled/disabled override
+  enabled    Boolean? // true to force-enable, false to force-disable
+  metricKey  String?  // e.g., 'students'
+  limitValue Int?     // Overridden numeric limit
+  reason     String?
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_overrides")
+}
+
+model TenantUsage {
+  id          String   @id @default(uuid())
+  tenantId    String
+  metricKey   String   // 'students', 'teachers', 'storage_gb', etc.
+  value       Int      @default(0)
+  periodKey   String   // 'current' or '2026-08'
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, metricKey, periodKey])
+  @@index([tenantId])
+  @@map("tenant_usages")
+}
+
+// ----------------------------------------------------
+// IDENTITY & AUTHORIZATION (RBAC)
+// ----------------------------------------------------
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  isActive     Boolean      @default(true)
+  isSuperAdmin Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  memberships  Membership[]
+
+  @@map("users")
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  userId    String
+  tenantId  String
+  roles     String[] // Array of SchoolRole or custom roles
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@map("memberships")
+}
+
+// ----------------------------------------------------
+// SCHOOL CORE (INSTITUTION, CAMPUS & ACADEMIC HIERARCHY)
+// ----------------------------------------------------
+
+model SchoolProfile {
+  id            String   @id @default(uuid())
+  tenantId      String   @unique
+  legalName     String
+  taxId         String?  // RUC / Tax ID
+  phone         String?
+  email         String?
+  address       String?
+  logoUrl       String?
+  currency      String   @default("USD")
+  timezone      String   @default("America/Lima")
+  gradingScale  String   @default("NUMERIC_0_20") // NUMERIC_0_20, LETTER_A_F, DESCRIPTIVE
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("school_profiles")
+}
+
+model Campus {
+  id          String      @id @default(uuid())
+  tenantId    String
+  name        String
+  code        String
+  address     String?
+  phone       String?
+  isMain      Boolean     @default(false)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sections    Section[]
+  classrooms  Classroom[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("campuses")
+}
+
+model AcademicYear {
+  id          String           @id @default(uuid())
+  tenantId    String
+  year        Int              // e.g. 2026
+  name        String           // e.g. "Año Lectivo 2026"
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean          @default(false)
+  isClosed    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  periods     AcademicPeriod[]
+  sections    Section[]
+
+  @@unique([tenantId, year])
+  @@index([tenantId])
+  @@map("academic_years")
+}
+
+enum PeriodType {
+  BIMESTER
+  TRIMESTER
+  SEMESTER
+  CUSTOM
+}
+
+model AcademicPeriod {
+  id             String       @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  name           String       // e.g. "I Bimestre"
+  code           String       // e.g. "B1"
+  order          Int          @default(1)
+  type           PeriodType   @default(BIMESTER)
+  startDate      DateTime
+  endDate        DateTime
+  isClosed       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, academicYearId, code])
+  @@index([tenantId])
+  @@map("academic_periods")
+}
+
+model EducationalLevel {
+  id          String       @id @default(uuid())
+  tenantId    String
+  name        String       // e.g. "Inicial", "Primaria", "Secundaria"
+  code        String       // e.g. "INI", "PRI", "SEC"
+  order       Int          @default(1)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  grades      GradeLevel[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("educational_levels")
+}
+
+model GradeLevel {
+  id          String           @id @default(uuid())
+  tenantId    String
+  levelId     String
+  name        String           // e.g. "1er Grado", "2do Grado", "5to Año"
+  code        String           // e.g. "PRI-1", "SEC-5"
+  order       Int              @default(1)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  level       EducationalLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  sections    Section[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@map("grade_levels")
+}
+
+model Section {
+  id             String       @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  gradeId        String
+  campusId       String?
+  classroomId    String?
+  name           String       // e.g. "A", "B", "Única"
+  code           String       // e.g. "SEC-5-A-2026"
+  maxCapacity    Int          @default(30)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  grade          GradeLevel   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  campus         Campus?      @relation(fields: [campusId], references: [id])
+  classroom      Classroom?   @relation(fields: [classroomId], references: [id])
+
+  @@unique([tenantId, academicYearId, gradeId, name])
+  @@index([tenantId])
+  @@map("sections")
+}
+
+model Classroom {
+  id          String    @id @default(uuid())
+  tenantId    String
+  campusId    String
+  name        String    // e.g. "Aula 101", "Lab de Cómputo"
+  code        String    // e.g. "A-101"
+  capacity    Int       @default(30)
+  location    String?   // e.g. "Pabellón A, Piso 1"
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campus      Campus    @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  sections    Section[]
+
+  @@unique([tenantId, campusId, code])
+  @@index([tenantId])
+  @@map("classrooms")
+}
+
+// ----------------------------------------------------
+// OUTBOX PATTERN (RELIABLE ASYNC DOMAIN EVENTS)
+// ----------------------------------------------------
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+model Outbox {
+  id            String       @id @default(uuid())
+  tenantId      String
+  eventType     String
+  aggregateType String
+  aggregateId   String
+  correlationId String?
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  retryCount    Int          @default(0)
+  lastError     String?
+  createdAt     DateTime     @default(now())
+  publishedAt   DateTime?
+
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status, createdAt])
+  @@map("outbox")
+}
+
+// ----------------------------------------------------
+// AUDIT LOG (IMMUTABLE LOGGING FOR SENSITIVE ACTIONS)
+// ----------------------------------------------------
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  tenantId      String
+  actorId       String
+  actorEmail    String?
+  action        String
+  resource      String
+  resourceId    String
+  ipAddress     String?
+  userAgent     String?
+  correlationId String?
+  before        Json?
+  after         Json?
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, resource, resourceId])
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}
