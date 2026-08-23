@@ -117,6 +117,7 @@ export enum SchoolRole {
   DIRECTOR = 'DIRECTOR',
   ADMINISTRATOR = 'ADMINISTRATOR',
   SECRETARY = 'SECRETARY',
+  ASSISTANT = 'ASSISTANT',
   TEACHER = 'TEACHER',
   PARENT = 'PARENT',
   STUDENT = 'STUDENT',
@@ -184,6 +185,202 @@ export const Permissions = {
   // Reporting & Audit
   REPORTING_VIEW: 'reporting.view',
   AUDIT_VIEW: 'audit.view',
+
+  // Academic Engine & Scales
+  ACADEMIC_SCALES_MANAGE: 'academic.scales.manage',
+  ACADEMIC_COMPETENCIES_MANAGE: 'academic.competencies.manage',
+  ACADEMIC_PROMOTION_MANAGE: 'academic.promotion.manage',
+  ACADEMIC_PERIOD_LOCK: 'academic.period.lock',
 } as const;
 
 export type PermissionKey = (typeof Permissions)[keyof typeof Permissions];
+
+/* ────────────────────────────────────────────────────────────
+   ACADEMIC ENGINE & CONFIGURABLE EVALUATION SYSTEM TYPES
+   ──────────────────────────────────────────────────────────── */
+
+export enum InstitutionType {
+  INITIAL_EDUCATION = 'INITIAL_EDUCATION',
+  PRIMARY_EDUCATION = 'PRIMARY_EDUCATION',
+  SECONDARY_EDUCATION = 'SECONDARY_EDUCATION',
+  EBR = 'EBR',
+  EBA = 'EBA',
+  PRE_UNIVERSITY = 'PRE_UNIVERSITY',
+  TRAINING_CENTER = 'TRAINING_CENTER',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum EvaluationScaleType {
+  LITERAL = 'LITERAL',
+  NUMERIC = 'NUMERIC',
+  PERCENTAGE = 'PERCENTAGE',
+  POINTS = 'POINTS',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum AssessmentType {
+  COMPETENCY = 'COMPETENCY',
+  EXAM = 'EXAM',
+  QUIZ = 'QUIZ',
+  TASK = 'TASK',
+  PROJECT = 'PROJECT',
+  PARTICIPATION = 'PARTICIPATION',
+  PRACTICE = 'PRACTICE',
+  SIMULATION = 'SIMULATION',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum AcademicPeriodState {
+  DRAFT = 'DRAFT',
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED',
+  LOCKED = 'LOCKED',
+}
+
+export interface EvaluationScaleDto {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  type: EvaluationScaleType;
+  minValue?: number;
+  maxValue?: number;
+  decimalPlaces: number;
+  isDefault: boolean;
+  isActive: boolean;
+  items?: EvaluationScaleItemDto[];
+}
+
+export interface EvaluationScaleItemDto {
+  id: string;
+  scaleId: string;
+  code: string; // e.g. "AD", "A", "B", "C"
+  label: string; // e.g. "Logro destacado", "Logro esperado"
+  description?: string;
+  numericMin?: number;
+  numericMax?: number;
+  order: number;
+  color?: string;
+  isPassing: boolean;
+}
+
+export interface CompetencyDto {
+  id: string;
+  tenantId: string;
+  areaId?: string;
+  courseId?: string;
+  code: string;
+  name: string;
+  description?: string;
+  order: number;
+  isActive: boolean;
+  criteria?: CriterionDto[];
+}
+
+export interface CriterionDto {
+  id: string;
+  competencyId: string;
+  code: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+export interface AssessmentDto {
+  id: string;
+  tenantId: string;
+  courseSectionId: string;
+  academicPeriodId: string;
+  competencyId?: string;
+  scaleId: string;
+  name: string;
+  type: AssessmentType;
+  weight: number;
+  maxScore?: number;
+  date: string;
+  status: AcademicPeriodState;
+}
+
+export interface StudentAssessmentResultDto {
+  id: string;
+  tenantId: string;
+  assessmentId: string;
+  studentId: string;
+  scaleItemId?: string;
+  numericValue?: number;
+  literalValue?: string;
+  percentage?: number;
+  comment?: string;
+  teacherObservation?: string;
+}
+
+export interface DescriptiveConclusionDto {
+  id: string;
+  tenantId: string;
+  studentId: string;
+  competencyId: string;
+  periodId: string;
+  teacherId: string;
+  text: string;
+  status: AcademicPeriodState;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MockExamDto {
+  id: string;
+  tenantId: string;
+  title: string;
+  code: string;
+  examDate: string;
+  durationMinutes: number;
+  totalQuestions: number;
+  correctPoints: number;
+  incorrectPenalty: number;
+  blankPoints: number;
+  maxScore: number;
+  academicPeriodId: string;
+}
+
+export interface MockExamResultDto {
+  id: string;
+  tenantId: string;
+  mockExamId: string;
+  studentId: string;
+  studentName?: string;
+  correctAnswers: number;
+  incorrectAnswers: number;
+  unanswered: number;
+  rawScore: number;
+  finalScore: number;
+  percentage: number;
+  ranking: number;
+  totalStudents: number;
+  percentile: number;
+  careerTrack?: string;
+}
+
+export interface GradeAuditDto {
+  id: string;
+  tenantId: string;
+  assessmentId: string;
+  studentId: string;
+  userId: string;
+  oldValue?: string;
+  newValue?: string;
+  reason: string;
+  timestamp: string;
+  ipAddress?: string;
+}
+
+export interface AcademicRegulationDto {
+  id: string;
+  code: string; // e.g. "RVM-094-2020-MINEDU"
+  name: string;
+  version: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  institutionType: InstitutionType;
+  rules: Record<string, unknown>;
+  isActive: boolean;
+}

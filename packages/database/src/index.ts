@@ -14,9 +14,19 @@ export class DatabaseClient {
     }
     return DatabaseClient.instance;
   }
+
+  public static async disconnect(): Promise<void> {
+    if (DatabaseClient.instance) {
+      await DatabaseClient.instance.$disconnect();
+    }
+  }
 }
 
 export const db = DatabaseClient.getInstance();
+
+export async function disconnectDatabase(): Promise<void> {
+  await DatabaseClient.disconnect();
+}
 
 /**
  * Helper to execute database mutations and store domain events into Outbox atomically

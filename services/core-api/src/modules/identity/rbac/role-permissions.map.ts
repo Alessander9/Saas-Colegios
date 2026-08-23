@@ -45,6 +45,7 @@ export const RolePermissionsMap: Record<string, PermissionKey[]> = {
     Permissions.COMMERCE_ORDERS_VIEW,
     Permissions.COMMERCE_ORDERS_PROCESS,
     Permissions.ACTIVITIES_VIEW,
+    Permissions.COMMERCE_ORDERS_VIEW,
     Permissions.ACTIVITIES_MANAGE,
     Permissions.HR_EMPLOYEES_MANAGE,
     Permissions.HR_ATTENDANCE_MANAGE,
@@ -94,6 +95,16 @@ export const RolePermissionsMap: Record<string, PermissionKey[]> = {
     Permissions.ACTIVITIES_VIEW,
   ],
 
+  [SchoolRole.ASSISTANT]: [
+    Permissions.SCHOOL_CONFIG_VIEW,
+    Permissions.STUDENTS_VIEW,
+    Permissions.FAMILY_VIEW,
+    Permissions.ENROLLMENT_VIEW,
+    Permissions.ACADEMIC_GRADES_VIEW,
+    Permissions.ACADEMIC_ATTENDANCE_RECORD,
+    Permissions.ACTIVITIES_VIEW,
+  ],
+
   [SchoolRole.TEACHER]: [
     Permissions.STUDENTS_VIEW,
     Permissions.ACADEMIC_GRADES_VIEW,
@@ -116,6 +127,8 @@ export const RolePermissionsMap: Record<string, PermissionKey[]> = {
 
   [SchoolRole.PARENT]: [
     Permissions.STUDENTS_VIEW,
+    Permissions.FAMILY_VIEW,
+    Permissions.COMMERCE_ORDERS_VIEW,
     Permissions.ACADEMIC_GRADES_VIEW,
     Permissions.FINANCE_VIEW,
     Permissions.ACTIVITIES_VIEW,

@@ -71,4 +71,106 @@ describe('PermissionGuard', () => {
 
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
+
+  describe('SchoolRole.ASSISTANT (Auxiliar / Asistente)', () => {
+    it('should allow ASSISTANT to record attendance and view students/family', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === PERMISSIONS_KEY) return [Permissions.ACADEMIC_ATTENDANCE_RECORD];
+        return undefined;
+      });
+
+      const context = createMockContext({
+        id: 'assistant-1',
+        isSuperAdmin: false,
+        permissions: [
+          Permissions.SCHOOL_CONFIG_VIEW,
+          Permissions.STUDENTS_VIEW,
+          Permissions.FAMILY_VIEW,
+          Permissions.ENROLLMENT_VIEW,
+          Permissions.ACADEMIC_GRADES_VIEW,
+          Permissions.ACADEMIC_ATTENDANCE_RECORD,
+          Permissions.ACTIVITIES_VIEW,
+        ],
+        roles: ['ASSISTANT'],
+      });
+
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
+    it('should strictly reject ASSISTANT attempting to modify academic grades', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === PERMISSIONS_KEY) return [Permissions.ACADEMIC_GRADES_INPUT];
+        return undefined;
+      });
+
+      const context = createMockContext({
+        id: 'assistant-1',
+        isSuperAdmin: false,
+        permissions: [
+          Permissions.STUDENTS_VIEW,
+          Permissions.ACADEMIC_ATTENDANCE_RECORD,
+        ],
+        roles: ['ASSISTANT'],
+      });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+
+    it('should strictly reject ASSISTANT attempting to collect payments or manage cashbox', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === PERMISSIONS_KEY) return [Permissions.FINANCE_COLLECT];
+        return undefined;
+      });
+
+      const context = createMockContext({
+        id: 'assistant-1',
+        isSuperAdmin: false,
+        permissions: [
+          Permissions.STUDENTS_VIEW,
+          Permissions.ACADEMIC_ATTENDANCE_RECORD,
+        ],
+        roles: ['ASSISTANT'],
+      });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+
+    it('should strictly reject ASSISTANT attempting to delete or create students', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === PERMISSIONS_KEY) return [Permissions.STUDENTS_DELETE];
+        return undefined;
+      });
+
+      const context = createMockContext({
+        id: 'assistant-1',
+        isSuperAdmin: false,
+        permissions: [
+          Permissions.STUDENTS_VIEW,
+          Permissions.ACADEMIC_ATTENDANCE_RECORD,
+        ],
+        roles: ['ASSISTANT'],
+      });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+
+    it('should strictly reject ASSISTANT attempting to process payroll or manage staff', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === PERMISSIONS_KEY) return [Permissions.PAYROLL_PROCESS];
+        return undefined;
+      });
+
+      const context = createMockContext({
+        id: 'assistant-1',
+        isSuperAdmin: false,
+        permissions: [
+          Permissions.STUDENTS_VIEW,
+          Permissions.ACADEMIC_ATTENDANCE_RECORD,
+        ],
+        roles: ['ASSISTANT'],
+      });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    });
+  });
 });

@@ -11,13 +11,18 @@
     "prisma:migrate": "prisma migrate dev",
     "clean": "rm -rf dist"
   },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@cole/domain-types": "workspace:*",
     "@prisma/client": "^6.4.1"
   },
   "devDependencies": {
+    "bcryptjs": "^3.0.3",
     "@types/node": "^22.20.1",
     "prisma": "^6.4.1",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }
 }
