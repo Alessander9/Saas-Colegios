@@ -16,6 +16,7 @@ import { ReportingModule } from './modules/reporting/reporting.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { DocumentModule } from './modules/document/document.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { OutboxModule } from './modules/outbox/outbox.module';
 import { EventBus } from './shared/events/event-bus.service';
 
 @Module({
@@ -37,6 +38,7 @@ import { EventBus } from './shared/events/event-bus.service';
     NotificationModule,
     DocumentModule,
     AuditModule,
+    OutboxModule,
   ],
   providers: [EventBus],
   exports: [EventBus],

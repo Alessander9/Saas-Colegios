@@ -15,7 +15,7 @@ const MOCK_METRICS: PlatformMetrics = {
   tenants: { total: 3, active: 2, trial: 1, suspended: 0 },
   usage: { totalStudentsActive: 1645 },
   catalog: { activePlans: 3 },
-  timestamp: new Date().toISOString(),
+  timestamp: '2026-01-01T00:00:00.000Z', // fixed to avoid SSR/client hydration mismatch
 };
 
 const MOCK_TENANTS: PlatformTenant[] = [

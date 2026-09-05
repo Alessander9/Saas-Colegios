@@ -86,3 +86,14 @@ export class EnrollStudentDto {
   @IsOptional()
   status?: EnrollmentStatus;
 }
+
+export class TransitionEnrollmentStatusDto {
+  @ApiProperty({ enum: EnrollmentStatus })
+  @IsEnum(EnrollmentStatus)
+  status!: EnrollmentStatus;
+
+  @ApiPropertyOptional({ example: 'Ficha médica y Ficha Única de Matrícula SIAGIE validadas' })
+  @IsString()
+  @IsOptional()
+  remarks?: string;
+}

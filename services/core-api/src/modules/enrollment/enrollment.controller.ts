@@ -15,6 +15,7 @@ import {
   CreateAdmissionApplicationDto,
   UpdateAdmissionStatusDto,
   EnrollStudentDto,
+  TransitionEnrollmentStatusDto,
 } from './dto/enrollment.dto';
 import { AuthGuard } from '../identity/guards/auth.guard';
 import { PermissionGuard } from '../identity/guards/permission.guard';
@@ -73,7 +74,7 @@ export class EnrollmentController {
   }
 
   // --------------------------------------------------
-  // FORMAL ENROLLMENT
+  // FORMAL ENROLLMENT & STATE MACHINE
   // --------------------------------------------------
 
   @Post('enroll')
@@ -86,6 +87,23 @@ export class EnrollmentController {
     @Body() dto: EnrollStudentDto
   ) {
     return this.enrollmentService.enrollStudent(this.extractTenantId(user), dto);
+  }
+
+  @Post('enrollments/:id/transition')
+  @RequirePermission(Permissions.ENROLLMENT_MANAGE)
+  @ApiOperation({
+    summary: 'Transition digital enrollment state machine status (PENDING -> CONFIRMED -> GRADUATED/WITHDRAWN)',
+  })
+  transitionEnrollmentStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') enrollmentId: string,
+    @Body() dto: TransitionEnrollmentStatusDto
+  ) {
+    return this.enrollmentService.transitionEnrollmentStatus(
+      this.extractTenantId(user),
+      enrollmentId,
+      dto
+    );
   }
 
   @Get('enrollments')

@@ -345,7 +345,7 @@ export default function HomePage() {
         { label: 'Recaudación del Mes', value: '94.8% Al Día', sub: 'Recordatorios activos' },
         { label: 'Docentes y Personal', value: '28 Profesores', sub: 'Planillas aprobadas' },
       ],
-      portalUrl: 'http://localhost:3006',
+      portalUrl: 'http://localhost:3001',
       portalButtonText: 'Ver Portal de Dirección (Demo)',
     },
     teachers: {
@@ -368,7 +368,7 @@ export default function HomePage() {
         { label: 'Promedio del Aula', value: '17.4 / 20', sub: 'Nivel Destacado (AD)' },
         { label: 'Libretas Emitidas', value: 'I Bimestre Listo', sub: 'Aprobado por Dirección' },
       ],
-      portalUrl: 'http://localhost:3007',
+      portalUrl: 'http://localhost:3002',
       portalButtonText: 'Ver Portal del Profesor (Demo)',
     },
     parents: {
@@ -391,7 +391,7 @@ export default function HomePage() {
         { label: 'Promedio de Mateo', value: '18.5 / 20 (AD)', sub: 'Destacado en Matemáticas' },
         { label: 'Talleres Activos', value: 'Robótica y Fútbol', sub: 'Inscripción confirmada' },
       ],
-      portalUrl: 'http://localhost:3008',
+      portalUrl: 'http://localhost:3003',
       portalButtonText: 'Ver Portal de Padres (Demo)',
     },
     students: {
@@ -414,7 +414,7 @@ export default function HomePage() {
         { label: 'Nivel de Logro', value: '🌟 Logro Destacado', sub: 'Cuadro de Honor' },
         { label: 'Asistencia', value: '100% Asistido', sub: '42 días consecutivos' },
       ],
-      portalUrl: 'http://localhost:3009',
+      portalUrl: 'http://localhost:3004',
       portalButtonText: 'Ver Portal del Alumno (Demo)',
     },
   };
@@ -897,7 +897,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
             <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-2">
               <div className="text-3xl">📄</div>
-              <p className="text-3xl sm:text-4xl font-black text-emerald-400">{paperSaved.toLocaleString()}</p>
+              <p className="text-3xl sm:text-4xl font-black text-emerald-400">{paperSaved.toLocaleString('es-PE')}</p>
               <p className="text-xs font-bold text-slate-200">Hojas de Papel Ahorradas / Año</p>
               <p className="text-[11px] text-slate-400">Menos impresiones y carpetas</p>
             </div>
@@ -972,7 +972,7 @@ export default function HomePage() {
                 </div>
               </div>
               <a
-                href="http://localhost:3006"
+                href="http://localhost:3001"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs text-center transition-all shadow-md shadow-emerald-600/20"
@@ -1000,7 +1000,7 @@ export default function HomePage() {
                 </div>
               </div>
               <a
-                href="http://localhost:3007"
+                href="http://localhost:3002"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs text-center transition-all shadow-md shadow-indigo-600/20"
@@ -1028,7 +1028,7 @@ export default function HomePage() {
                 </div>
               </div>
               <a
-                href="http://localhost:3008"
+                href="http://localhost:3003"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs text-center transition-all shadow-md shadow-amber-600/20"
@@ -1056,7 +1056,7 @@ export default function HomePage() {
                 </div>
               </div>
               <a
-                href="http://localhost:3009"
+                href="http://localhost:3004"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs text-center transition-all shadow-md shadow-cyan-600/20"
@@ -1261,7 +1261,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <a
-                href="http://localhost:3006"
+                href="http://localhost:3001"
                 target="_blank"
                 rel="noreferrer"
                 className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 transition-all flex items-start gap-3 group"
@@ -1274,7 +1274,7 @@ export default function HomePage() {
               </a>
 
               <a
-                href="http://localhost:3007"
+                href="http://localhost:3002"
                 target="_blank"
                 rel="noreferrer"
                 className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 transition-all flex items-start gap-3 group"
@@ -1287,7 +1287,7 @@ export default function HomePage() {
               </a>
 
               <a
-                href="http://localhost:3008"
+                href="http://localhost:3003"
                 target="_blank"
                 rel="noreferrer"
                 className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition-all flex items-start gap-3 group"
@@ -1300,7 +1300,7 @@ export default function HomePage() {
               </a>
 
               <a
-                href="http://localhost:3009"
+                href="http://localhost:3004"
                 target="_blank"
                 rel="noreferrer"
                 className="p-4 rounded-2xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 transition-all flex items-start gap-3 group"

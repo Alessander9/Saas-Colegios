@@ -77,6 +77,50 @@ export default function SchoolLoginScreen({ onLogin, loginFn }: Props) {
             <p className="text-sm text-slate-400 mt-1">Nido • Primaria • Secundaria • Pre-Universitario</p>
           </div>
 
+          {/* ── Quick Roles Selector ── */}
+          <div className="mb-5 space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Seleccionar perfil de acceso rápido:
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('director@sancleo.edu.pe');
+                  setPassword('Cole2026!');
+                }}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  email === 'director@sancleo.edu.pe'
+                    ? 'bg-emerald-500/20 border-emerald-400/50 text-white shadow-sm'
+                    : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] text-slate-300'
+                }`}
+              >
+                <div className="text-xs font-bold flex items-center gap-1">
+                  <span>🏫 Director</span>
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">Acceso Total</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('tienda@sancleo.edu.pe');
+                  setPassword('Cole2026!');
+                }}
+                className={`p-2.5 rounded-xl border text-left transition-all ${
+                  email === 'tienda@sancleo.edu.pe'
+                    ? 'bg-amber-500/20 border-amber-400/50 text-white shadow-sm'
+                    : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] text-slate-300'
+                }`}
+              >
+                <div className="text-xs font-bold flex items-center gap-1">
+                  <span>🛒 Gestor Tienda</span>
+                </div>
+                <div className="text-[10px] text-amber-300/80 truncate">Solo Productos</div>
+              </button>
+            </div>
+          </div>
+
           {/* ── Form ── */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

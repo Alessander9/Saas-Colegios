@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { db, withTransactionAndOutbox, EnrollmentStatus, AdmissionStatus } from '@cole/database';
 import { DomainEvent } from '@cole/domain-types';
@@ -11,12 +12,13 @@ import {
   CreateAdmissionApplicationDto,
   UpdateAdmissionStatusDto,
   EnrollStudentDto,
+  TransitionEnrollmentStatusDto,
 } from './dto/enrollment.dto';
 
 @Injectable()
 export class EnrollmentService {
   // --------------------------------------------------
-  // ADMISSION PIPELINE
+  // ADMISSION PIPELINE & STATE MACHINE
   // --------------------------------------------------
 
   async createAdmissionApplication(
@@ -70,6 +72,24 @@ export class EnrollmentService {
       throw new NotFoundException(`Admission application with ID ${id} not found`);
     }
 
+    // Valid state transitions for admission
+    const validTransitions: Record<AdmissionStatus, AdmissionStatus[]> = {
+      [AdmissionStatus.SUBMITTED]:             [AdmissionStatus.UNDER_REVIEW, AdmissionStatus.REJECTED],
+      [AdmissionStatus.UNDER_REVIEW]:          [AdmissionStatus.EVALUATION_SCHEDULED, AdmissionStatus.APPROVED, AdmissionStatus.REJECTED, AdmissionStatus.WAITLISTED],
+      [AdmissionStatus.EVALUATION_SCHEDULED]:  [AdmissionStatus.APPROVED, AdmissionStatus.REJECTED, AdmissionStatus.WAITLISTED],
+      [AdmissionStatus.APPROVED]:              [AdmissionStatus.ENROLLED, AdmissionStatus.REJECTED],
+      [AdmissionStatus.WAITLISTED]:            [AdmissionStatus.APPROVED, AdmissionStatus.REJECTED],
+      [AdmissionStatus.REJECTED]:              [AdmissionStatus.UNDER_REVIEW],
+      [AdmissionStatus.ENROLLED]:              [],
+    };
+
+    const allowedNext = validTransitions[admission.status as AdmissionStatus] || [];
+    if (!allowedNext.includes(dto.status)) {
+      throw new BadRequestException(
+        `Invalid admission state transition from ${admission.status} to ${dto.status}`
+      );
+    }
+
     return await db.admissionApplication.update({
       where: { id },
       data: {
@@ -85,7 +105,7 @@ export class EnrollmentService {
   }
 
   // --------------------------------------------------
-  // FORMAL ENROLLMENT & SECTION ASSIGNMENT
+  // DIGITAL ENROLLMENT STATE MACHINE
   // --------------------------------------------------
 
   async enrollStudent(tenantId: string, dto: EnrollStudentDto): Promise<any> {
@@ -147,6 +167,7 @@ export class EnrollmentService {
     // 4. Generate enrollment code and outbox event
     const enrollmentId = uuidv4();
     const enrollmentCode = `MAT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const initialStatus = dto.status || EnrollmentStatus.CONFIRMED;
 
     const enrollmentConfirmedEvent: DomainEvent = {
       eventId: uuidv4(),
@@ -161,7 +182,7 @@ export class EnrollmentService {
         academicYearId: dto.academicYearId,
         gradeId: dto.gradeId,
         sectionId: dto.sectionId,
-        status: dto.status || EnrollmentStatus.CONFIRMED,
+        status: initialStatus,
       },
     };
 
@@ -175,7 +196,7 @@ export class EnrollmentService {
           academicYearId: dto.academicYearId,
           gradeId: dto.gradeId,
           sectionId: dto.sectionId,
-          status: dto.status || EnrollmentStatus.CONFIRMED,
+          status: initialStatus,
         },
         include: {
           student: true,
@@ -186,6 +207,45 @@ export class EnrollmentService {
       });
 
       return enrollment;
+    });
+  }
+
+  async transitionEnrollmentStatus(
+    tenantId: string,
+    enrollmentId: string,
+    dto: TransitionEnrollmentStatusDto
+  ): Promise<any> {
+    const enrollment = await db.enrollment.findFirst({
+      where: { id: enrollmentId, tenantId },
+    });
+    if (!enrollment) throw new NotFoundException('Enrollment record not found');
+
+    // Valid state transitions for digital enrollment state machine
+    const allowedTransitions: Record<EnrollmentStatus, EnrollmentStatus[]> = {
+      [EnrollmentStatus.PENDING_PAYMENT]: [EnrollmentStatus.CONFIRMED, EnrollmentStatus.CANCELLED],
+      [EnrollmentStatus.CONFIRMED]:       [EnrollmentStatus.TRANSFERRED, EnrollmentStatus.CANCELLED],
+      [EnrollmentStatus.TRANSFERRED]:     [],
+      [EnrollmentStatus.CANCELLED]:       [EnrollmentStatus.PENDING_PAYMENT],
+    };
+
+    const nextAllowed = allowedTransitions[enrollment.status as EnrollmentStatus] || [];
+    if (!nextAllowed.includes(dto.status)) {
+      throw new BadRequestException(
+        `Invalid enrollment transition from ${enrollment.status} to ${dto.status}`
+      );
+    }
+
+    return await db.enrollment.update({
+      where: { id: enrollmentId },
+      data: {
+        status: dto.status,
+        updatedAt: new Date(),
+      },
+      include: {
+        student: true,
+        grade: { include: { level: true } },
+        section: true,
+      },
     });
   }
 

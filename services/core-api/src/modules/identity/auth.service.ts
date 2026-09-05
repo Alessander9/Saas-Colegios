@@ -4,6 +4,7 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { db, withTransactionAndOutbox } from '@cole/database';
@@ -21,7 +22,11 @@ export class AuthService {
   constructor(private jwtService: JwtService) {}
 
   async register(dto: RegisterUserDto): Promise<any> {
-    const existing = await db.user.findUnique({ where: { email: dto.email.toLowerCase() } });
+    if (!dto || !dto.email || typeof dto.email !== 'string' || !dto.email.trim()) {
+      throw new BadRequestException('A valid email address is required');
+    }
+    const cleanEmail = dto.email.trim().toLowerCase();
+    const existing = await db.user.findUnique({ where: { email: cleanEmail } });
     if (existing) {
       throw new ConflictException('A user with this email address already exists');
     }
@@ -38,7 +43,7 @@ export class AuthService {
       aggregateId: userId,
       version: 1,
       payload: {
-        email: dto.email.toLowerCase(),
+        email: cleanEmail,
         firstName: dto.firstName,
         lastName: dto.lastName,
       },
@@ -48,7 +53,7 @@ export class AuthService {
       const user = await (tx as typeof db).user.create({
         data: {
           id: userId,
-          email: dto.email.toLowerCase(),
+          email: cleanEmail,
           passwordHash,
           firstName: dto.firstName,
           lastName: dto.lastName,
@@ -78,8 +83,12 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string; user: AuthenticatedUser }> {
+    if (!dto || !dto.email || typeof dto.email !== 'string' || !dto.email.trim()) {
+      throw new BadRequestException('A valid email address is required');
+    }
+    const cleanEmail = dto.email.trim().toLowerCase();
     const user = await db.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
+      where: { email: cleanEmail },
       include: {
         memberships: {
           include: { tenant: true },
@@ -154,8 +163,12 @@ export class AuthService {
       throw new ForbiddenException('Only Super Admins can initiate support impersonation sessions');
     }
 
+    if (!dto || !dto.targetUserId || typeof dto.targetUserId !== 'string' || !dto.targetUserId.trim()) {
+      throw new BadRequestException('A valid targetUserId is required');
+    }
+
     const targetUser = await db.user.findUnique({
-      where: { id: dto.targetUserId },
+      where: { id: dto.targetUserId.trim() },
       include: { memberships: { where: { tenantId: dto.tenantId } } },
     });
 

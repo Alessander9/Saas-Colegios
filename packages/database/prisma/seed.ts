@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { db as prisma } from '../src';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Seeding database...');
@@ -184,6 +182,19 @@ async function main() {
     },
   });
 
+  // Store & Products Manager
+  const storeManager = await prisma.user.upsert({
+    where: { email: 'tienda@sanjose.edu.pe' },
+    update: {},
+    create: {
+      id: uuidv4(),
+      email: 'tienda@sanjose.edu.pe',
+      passwordHash,
+      firstName: 'Mateo',
+      lastName: 'Alarcón (Gestor Tienda)',
+    },
+  });
+
   // Memberships
   const membershipData = [
     { userId: director.id, tenantId: tenant.id, roles: ['DIRECTOR'] },
@@ -191,6 +202,7 @@ async function main() {
     { userId: teacher2.id, tenantId: tenant.id, roles: ['TEACHER'] },
     { userId: secretary.id, tenantId: tenant.id, roles: ['SECRETARY'] },
     { userId: parent.id, tenantId: tenant.id, roles: ['PARENT'] },
+    { userId: storeManager.id, tenantId: tenant.id, roles: ['STORE_MANAGER'] },
   ];
 
   for (const m of membershipData) {

@@ -1,4 +1,5 @@
 @echo off
-cd /d C:\Users\Alessander\Desktop\cole\apps\web-school-admin
+cd /d "%~dp0apps\web-school-admin"
 set NODE_ENV=development
-pnpm dev
+npx pnpm dev
+

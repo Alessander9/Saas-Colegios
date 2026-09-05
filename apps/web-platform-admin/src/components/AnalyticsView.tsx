@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  getPlatformOverview, getPlatformGrowth, getModuleUsage, getTenants,
-  type PlatformOverview, type GrowthTimeline, type ModuleUsage, type PlatformTenant,
+  getPlatformGrowth, getModuleUsage, getTenants,
+  type GrowthTimeline, type ModuleUsage, type PlatformTenant,
 } from '../lib/api';
 
 /* ── Fallback mock data ── */
@@ -38,14 +38,13 @@ const MOCK_TENANTS: PlatformTenant[] = [
 
 /* ── Simple SVG Bar Chart ── */
 function BarChart({ data, labelKey, valueKey, color, maxValue }: {
-  data: Record<string, string | number>[];
+  data: any[];
   labelKey: string;
   valueKey: string;
   color: string;
   maxValue?: number;
 }) {
   const max = maxValue || Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
-  const barWidth = Math.floor(100 / data.length) - 2;
 
   return (
     <div className="w-full">
