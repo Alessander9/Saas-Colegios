@@ -59,14 +59,12 @@ RUN pnpm install --frozen-lockfile --prod
 # Copy built files
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
-COPY --from=builder /app/packages/database/node_modules/.prisma ./packages/database/node_modules/.prisma
-COPY --from=builder /app/packages/database/node_modules/@prisma ./packages/database/node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/packages/domain-types/dist ./packages/domain-types/dist
 COPY --from=builder /app/packages/logger/dist ./packages/logger/dist
 COPY --from=builder /app/services/core-api/dist ./services/core-api/dist
 
-# Generate Prisma client for production
-RUN cd packages/database && pnpm prisma generate
+# Prisma client already generated and copied from builder stage
 
 # Security: Non-root user
 USER cole
