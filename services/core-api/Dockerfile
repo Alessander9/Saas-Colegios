@@ -11,7 +11,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Copy workspace root files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/database/package.json packages/database/
 COPY packages/domain-types/package.json packages/domain-types/
 COPY packages/logger/package.json packages/logger/
@@ -78,4 +78,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 EXPOSE 4000
 
 CMD ["node", "services/core-api/dist/main.js"]
-
