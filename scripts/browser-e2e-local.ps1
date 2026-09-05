@@ -13,7 +13,11 @@ try {
   $pnpmBin = if ($isWin) { 'pnpm.cmd' } else { 'pnpm' }
 
   foreach ($app in $apps) {
-    $processes += Start-Process -FilePath $pnpmBin -ArgumentList '--dir', $app.Path, 'dev' -PassThru -WindowStyle Hidden
+    if ($isWin) {
+      $processes += Start-Process -FilePath $pnpmBin -ArgumentList '--dir', $app.Path, 'exec', 'next', 'dev', '-p', $app.Port -PassThru -WindowStyle Hidden
+    } else {
+      $processes += Start-Process -FilePath $pnpmBin -ArgumentList '--dir', $app.Path, 'exec', 'next', 'dev', '-p', $app.Port -PassThru
+    }
   }
 
   foreach ($app in $apps) {
@@ -41,4 +45,5 @@ try {
 finally {
   $processes | Where-Object { $_ -and -not $_.HasExited } | Stop-Process -Force -ErrorAction SilentlyContinue
 }
+
 
